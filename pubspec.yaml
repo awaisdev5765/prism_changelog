@@ -1,0 +1,31 @@
+name: changelog_widget
+description: >-
+  In-app "What's New" screens and changelog views for Flutter — parses
+  Keep-a-Changelog markdown into version cards, tracks last-seen versions,
+  and renders beautifully with zero dependencies.
+version: 0.1.0
+repository: https://github.com/awaisdev5765/changelog_widget
+issue_tracker: https://github.com/awaisdev5765/changelog_widget/issues
+topics:
+  - changelog
+  - whats-new
+  - release-notes
+  - widget
+  - ui
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

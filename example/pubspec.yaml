@@ -1,0 +1,15 @@
+name: changelog_widget_example
+description: Demo app for changelog_widget.
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  changelog_widget:
+    path: ..
+
+flutter:
+  uses-material-design: true
