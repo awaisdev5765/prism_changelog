@@ -1,4 +1,4 @@
-# changelog_widget
+# prism_changelog
 
 In-app **"What's New"** screens and changelog views for Flutter — parses
 Keep-a-Changelog markdown into beautiful version cards, tracks last-seen
@@ -14,6 +14,11 @@ Part of the **Prism** package family.
 - ✅ Version tracking — persists the last-seen version (pluggable store)
 - ✅ Parses real changelog files: `## [1.2.0] - 2026-01-15`, `## 1.2.0`,
   `### 1.2.0 (Hotfix)` — numeric version comparison included (`1.10 > 1.9`)
+- ✅ **Categorized sections** — `### Added` / `### Fixed` / `### Changed`
+  subsections render as labeled groups, proper Keep-a-Changelog style
+- ✅ **Asset loading** — one call to load CHANGELOG.md from app assets
+- ✅ **Localizable labels** — badge text, "Show older"/"Show fewer" fully
+  configurable via `ChangelogStyle`
 - ✅ Bullets keep their markdown (`**bold**`, links) — pair with
   [prism_markdown](https://pub.dev/packages/prism_markdown) via
   `bulletBuilder` for rich rendering
@@ -24,7 +29,7 @@ Part of the **Prism** package family.
 
 ```yaml
 dependencies:
-  changelog_widget: ^0.1.0
+  prism_changelog: ^0.1.0
 ```
 
 ## What's New sheet (auto-popup pattern)
@@ -52,6 +57,36 @@ ChangelogView(
 )
 ```
 
+## Categorized changelogs
+
+```markdown
+## [2.0.0] - 2026-02-01
+### Added
+- Dark mode
+### Fixed
+- Crash on cold start
+```
+
+Cards render `Added` / `Fixed` headers in the theme's primary color
+automatically — no configuration.
+
+## Load from an asset
+
+```dart
+final entries = await ChangelogParser.fromAsset('CHANGELOG.md');
+ChangelogView(entries: entries);
+```
+
+## Localize everything
+
+```dart
+const ChangelogStyle(
+  badgeText: 'NOUVEAU',
+  showOlderLabel: 'Versions précédentes',
+  showFewerLabel: 'Réduire',
+)
+```
+
 ## Rich bullets with prism_markdown
 
 ```dart
@@ -76,7 +111,7 @@ ChangelogView(
 | [prism_toast](https://pub.dev/packages/prism_toast) | Adaptive toast notifications |
 | [prism_pagination](https://pub.dev/packages/prism_pagination) | Infinite-scroll lists with all states handled |
 | [prism_form](https://pub.dev/packages/prism_form) | Declarative forms with sealed submit states |
-| **changelog_widget** | In-app "What's New" screens and changelog views |
+| **prism_changelog** | In-app "What's New" screens and changelog views |
 
 All pure Flutter, all six platforms, MIT licensed, built to work together.
 

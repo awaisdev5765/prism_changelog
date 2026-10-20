@@ -16,6 +16,10 @@ class ChangelogStyle {
     this.badgeTextStyle,
     this.spacing = 12,
     this.cardPadding = const EdgeInsets.all(16),
+    this.badgeText = 'NEW',
+    this.showOlderLabel = 'Show older',
+    this.showFewerLabel = 'Show fewer',
+    this.categoryStyle,
   });
 
   /// Card background; defaults to `surfaceContainerLow`.
@@ -41,7 +45,21 @@ class ChangelogStyle {
 
   /// Inner card padding.
   final EdgeInsetsGeometry cardPadding;
+
+  /// Badge text for highlighted versions. Defaults to `NEW`.
+  final String badgeText;
+
+  /// Label for the "show older" toggle.
+  final String showOlderLabel;
+
+  /// Label for the "show fewer" toggle.
+  final String showFewerLabel;
+
+  /// Category header text style (Added / Fixed / …).
+  final TextStyle? categoryStyle;
 }
+
+// Default (English) labels — overridable per field on [ChangelogStyle].
 
 /// Renders parsed [ChangelogEntry]s as beautiful version cards.
 ///
@@ -170,12 +188,51 @@ class _ExpandableListState extends State<_ExpandableList> {
               onPressed: () => setState(() => _expanded = !_expanded),
               child: Text(
                 _expanded
-                    ? 'Show fewer'
-                    : 'Show older (${widget.totalCount - widget.visibleCount})',
+                    ? widget.style.showFewerLabel
+                    : '${widget.style.showOlderLabel} '
+                          '(${widget.totalCount - widget.visibleCount})',
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _BulletRow extends StatelessWidget {
+  const _BulletRow({
+    required this.bullet,
+    required this.bulletBuilder,
+    required this.bulletStyle,
+    required this.theme,
+  });
+
+  final String bullet;
+  final Widget Function(String bullet)? bulletBuilder;
+  final TextStyle bulletStyle;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 7, right: 8),
+            child: Icon(
+              Icons.circle,
+              size: 5,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Expanded(
+            child:
+                bulletBuilder?.call(bullet) ?? Text(bullet, style: bulletStyle),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -243,7 +300,7 @@ class _VersionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      'NEW',
+                      style.badgeText,
                       style:
                           style.badgeTextStyle ??
                           TextStyle(
@@ -261,28 +318,38 @@ class _VersionCard extends StatelessWidget {
               Text(entry.date!, style: dateStyle),
             ],
             const SizedBox(height: 8),
-            for (final bullet in entry.bullets)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 7, right: 8),
-                      child: Icon(
-                        Icons.circle,
-                        size: 5,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Expanded(
-                      child:
-                          bulletBuilder?.call(bullet) ??
-                          Text(bullet, style: bulletStyle),
-                    ),
-                  ],
+            if (entry.isCategorized)
+              for (final section in entry.sections.entries) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 4),
+                  child: Text(
+                    section.key,
+                    style:
+                        (style.categoryStyle ??
+                                const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.4,
+                                ))
+                            .copyWith(color: theme.colorScheme.primary),
+                  ),
                 ),
-              ),
+                for (final bullet in section.value)
+                  _BulletRow(
+                    bullet: bullet,
+                    bulletBuilder: bulletBuilder,
+                    bulletStyle: bulletStyle,
+                    theme: theme,
+                  ),
+              ]
+            else
+              for (final bullet in entry.bullets)
+                _BulletRow(
+                  bullet: bullet,
+                  bulletBuilder: bulletBuilder,
+                  bulletStyle: bulletStyle,
+                  theme: theme,
+                ),
           ],
         ),
       ),

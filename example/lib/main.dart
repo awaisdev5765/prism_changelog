@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:changelog_widget/changelog_widget.dart';
+import 'package:prism_changelog/prism_changelog.dart';
 
 /// Demo app for changelog_widget.
 void main() => runApp(const DemoApp());

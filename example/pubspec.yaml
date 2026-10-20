@@ -1,5 +1,5 @@
-name: changelog_widget_example
-description: Demo app for changelog_widget.
+name: prism_changelog_example
+description: Demo app for prism_changelog.
 publish_to: none
 
 environment:
@@ -8,7 +8,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  changelog_widget:
+  prism_changelog:
     path: ..
 
 flutter:

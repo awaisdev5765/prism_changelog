@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show AssetBundle, ImmutableBuffer;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:changelog_widget/changelog_widget.dart';
+import 'package:prism_changelog/prism_changelog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _sample = '''
@@ -224,4 +228,121 @@ void main() {
       expect(find.text('v1.0.0'), findsNothing);
     });
   });
+
+  group('Categorized sections', () {
+    const categorized = '''
+## [2.0.0] - 2026-02-01
+### Added
+- Dark mode
+- Keyboard shortcuts
+
+### Fixed
+- Crash on cold start
+
+## [1.0.0] - 2025-12-01
+- Initial release
+''';
+
+    test('parser groups bullets under subsections', () {
+      final entries = ChangelogParser.parse(categorized);
+      expect(entries.first.isCategorized, isTrue);
+      expect(entries.first.sections['Added'], [
+        'Dark mode',
+        'Keyboard shortcuts',
+      ]);
+      expect(entries.first.sections['Fixed'], ['Crash on cold start']);
+      // Flat list stays in document order for simple consumers.
+      expect(entries.first.bullets, [
+        'Dark mode',
+        'Keyboard shortcuts',
+        'Crash on cold start',
+      ]);
+      expect(entries.last.isCategorized, isFalse);
+    });
+
+    testWidgets('cards render category headers', (tester) async {
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ChangelogView(changelog: categorized, collapsible: false),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Added'), findsOneWidget);
+      expect(find.text('Fixed'), findsOneWidget);
+      expect(find.text('Dark mode'), findsOneWidget);
+    });
+
+    testWidgets('labels are customizable', (tester) async {
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangelogView(
+              changelog: _sample,
+              highlightVersion: '2.0.0',
+              style: const ChangelogStyle(badgeText: 'JUUZ'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('JUUZ'), findsOneWidget);
+    });
+  });
+
+  group('Asset loading', () {
+    test('fromAsset parses a bundle-provided changelog', () async {
+      const source = '## [1.2.0]\n- From asset';
+      final bundle = _FakeBundle({'CHANGELOG.md': source});
+      final entries = await ChangelogParser.fromAsset(
+        'CHANGELOG.md',
+        bundle: bundle,
+      );
+      expect(entries.single.version, '1.2.0');
+      expect(entries.single.bullets, ['From asset']);
+    });
+  });
+}
+
+class _FakeBundle implements AssetBundle {
+  _FakeBundle(this._strings);
+
+  final Map<String, String> _strings;
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async =>
+      _strings[key]!;
+
+  @override
+  Future<ByteData> load(String key) => throw UnimplementedError();
+
+  @override
+  Future<ImmutableBuffer> loadBuffer(String key) => throw UnimplementedError();
+
+  @override
+  void clear() {}
+
+  @override
+  void evict(String key) {}
+
+  @override
+  Future<T> loadStructuredData<T>(
+    String key,
+    Future<T> Function(String value) parser,
+  ) => parser(_strings[key]!);
+
+  @override
+  Future<T> loadStructuredBinaryData<T>(
+    String key,
+    FutureOr<T> Function(ByteData data) parser,
+  ) async => parser(ByteData(0));
 }

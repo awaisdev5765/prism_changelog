@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
 /// A semantic changelog entry: one release version and its change bullets.
 @immutable
@@ -9,6 +10,7 @@ class ChangelogEntry {
     required this.bullets,
     this.date,
     this.title,
+    this.sections = const {},
   });
 
   /// Release version string, e.g. `1.2.0`.
@@ -20,8 +22,15 @@ class ChangelogEntry {
   /// Optional release title rendered next to the version.
   final String? title;
 
-  /// Change bullets for this release.
+  /// Change bullets for this release, in document order.
   final List<String> bullets;
+
+  /// Keep-a-Changelog subsections (`### Added`, `### Fixed`, …) mapped to
+  /// their bullets. Empty when the changelog has no subsections.
+  final Map<String, List<String>> sections;
+
+  /// True when this entry uses named subsections instead of flat bullets.
+  bool get isCategorized => sections.isNotEmpty;
 
   /// Parses [version] into comparable numeric segments; non-numeric
   /// segments (e.g. `beta`) compare as 0.
@@ -76,6 +85,7 @@ abstract final class ChangelogParser {
   static List<ChangelogEntry> parse(String source) {
     final entries = <ChangelogEntry>[];
     ChangelogEntry? current;
+    String? currentSection;
 
     for (final rawLine in source.split('\n')) {
       final line = rawLine.trimRight();
@@ -86,17 +96,39 @@ abstract final class ChangelogParser {
           date: header.date,
           title: header.title,
           bullets: [],
+          sections: {},
         );
         entries.add(current);
+        currentSection = null;
         continue;
       }
       if (current == null) continue;
-      final bullet = _bullet(line);
-      if (bullet != null) {
-        current.bullets.add(bullet);
+
+      final subSection = _sectionHeader(line);
+      if (subSection != null) {
+        currentSection = subSection;
+        current.sections.putIfAbsent(subSection, () => []);
+        continue;
       }
+
+      final bullet = _bullet(line);
+      if (bullet == null) continue;
+      if (currentSection != null) {
+        current.sections[currentSection]!.add(bullet);
+      }
+      current.bullets.add(bullet);
     }
     return entries;
+  }
+
+  /// Convenience: loads and parses [assetPath] from [bundle] (defaults to
+  /// the ambient asset bundle).
+  static Future<List<ChangelogEntry>> fromAsset(
+    String assetPath, {
+    AssetBundle? bundle,
+  }) async {
+    final source = await (bundle ?? rootBundle).loadString(assetPath);
+    return parse(source);
   }
 
   static _HeaderMatch? _versionHeader(String line) {
@@ -125,6 +157,16 @@ abstract final class ChangelogParser {
       if (title.isEmpty) title = null;
     }
     return _HeaderMatch(version: version, date: date, title: title);
+  }
+
+  /// Recognized `### Category` subsection headers.
+  static String? _sectionHeader(String line) {
+    final match = RegExp(r'^###\s+(.+)$').firstMatch(line.trim());
+    if (match == null) return null;
+    final label = match.group(1)!.trim();
+    // Avoid treating a date-only line as a section.
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(label)) return null;
+    return label;
   }
 
   static String? _bullet(String line) {
